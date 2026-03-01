@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -74,8 +74,17 @@ export default function ViewStudentPage({ navigation }) {
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // useFocusEffect ensures the database is queried EVERY time this screen is opened.
-  // This means newly added students will appear instantly without app restarts.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      // Intercept the default back action (hardware button, header arrow, or swipe)
+      if (e.data.action.type === "GO_BACK") {
+        e.preventDefault();
+        navigation.navigate("Home");
+      }
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   useFocusEffect(
     useCallback(() => {
       fetchStudents();

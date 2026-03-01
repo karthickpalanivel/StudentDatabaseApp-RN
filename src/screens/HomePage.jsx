@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,13 @@ import {
   Image,
   Dimensions,
   Modal,
+  BackHandler, // <-- Imported
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native"; // <-- Imported
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LottieView from "lottie-react-native";
 
-// Database and Theme Imports
 import db from "../database/database";
 import { COLORS } from "../theme/colors";
 
@@ -24,21 +25,43 @@ export default function HomePage({ navigation }) {
   const [activeUser, setActiveUser] = useState("User");
 
   // ==========================================
-  // AUTHENTICATION & DATA FETCHING (Optimized)
+  // HARDWARE BACK BUTTON (Exit App)
+  // ==========================================
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // Only exit the app if the logout modal is NOT visible.
+        // If modal is visible, pressing back should just close the modal.
+        if (isLogoutModalVisible) {
+          setLogoutModalVisible(false);
+          return true;
+        }
+
+        BackHandler.exitApp();
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+
+      return () => subscription.remove();
+    }, [isLogoutModalVisible]), // Re-bind if modal state changes
+  );
+
+  // ==========================================
+  // AUTHENTICATION & DATA FETCHING
   // ==========================================
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Check for token
         const token = await AsyncStorage.getItem("userToken");
-
-        // Security Check: If no token exists, boot them to the Login page
         if (!token) {
           navigation.reset({ index: 0, routes: [{ name: "Login" }] });
           return;
         }
 
-        // Retrieve the cached username directly from AsyncStorage (Blazing fast!)
         const storedName = await AsyncStorage.getItem("userName");
         if (storedName) {
           setActiveUser(storedName);
@@ -46,7 +69,6 @@ export default function HomePage({ navigation }) {
       } catch (error) {
         console.error("Error fetching user data: ", error);
       } finally {
-        // Drop the loading screen quickly
         setTimeout(() => {
           setIsLoading(false);
         }, 500);
@@ -56,14 +78,9 @@ export default function HomePage({ navigation }) {
     fetchUserData();
   }, []);
 
-  // ==========================================
-  // LOGOUT HANDLER (Optimized)
-  // ==========================================
   const handleLogout = async () => {
     try {
-      // Clear ALL session data using multiRemove
       await AsyncStorage.multiRemove(["userToken", "userName"]);
-
       setLogoutModalVisible(false);
       navigation.reset({
         index: 0,
@@ -181,7 +198,6 @@ export default function HomePage({ navigation }) {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Logout</Text>
 
-            {/* NEW: Displays the logged in user's name */}
             <View style={styles.activeUserBadge}>
               <Text style={styles.activeUserText}>
                 Logged in as: {activeUser}
@@ -215,10 +231,7 @@ export default function HomePage({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: COLORS.white 
-  },
+  container: { flex: 1, backgroundColor: COLORS.white },
   loadingContainer: {
     flex: 1,
     backgroundColor: COLORS.white,
@@ -234,8 +247,6 @@ const styles = StyleSheet.create({
   },
   topSection: {
     height: "55%",
-    // backgroundColor: COLORS.primary,
-    // position: "relative",
     paddingTop: 20,
     zIndex: 10,
   },
@@ -258,15 +269,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     marginTop: 15,
   },
-  logoIcon: {
-    width: 35,
-    height: 35,
-    tintColor: COLORS.white,
-  },
-  profileIcon: {
-    width: 50,
-    height: 50,
-  },
+  logoIcon: { width: 35, height: 35, tintColor: COLORS.white },
+  profileIcon: { width: 50, height: 50 },
   textContainer: { paddingHorizontal: 30, marginTop: 35 },
   welcomeSubtext: {
     fontFamily: "Roboto-Regular",
@@ -302,7 +306,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   iconCircle: {
-    borderRadius: "100%",
+    borderRadius: 25, // Changed from "100%"
     backgroundColor: "#0A4E51",
     justifyContent: "center",
     alignItems: "center",
@@ -326,8 +330,6 @@ const styles = StyleSheet.create({
   },
   fadedImage: { width: "80%", height: "100%", padding: 10 },
   bottomSection: { height: "5%", backgroundColor: COLORS.white },
-
-  /* --- Modal Styles --- */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(4, 32, 38, 0.7)",
@@ -348,8 +350,6 @@ const styles = StyleSheet.create({
     color: COLORS.darkest,
     marginBottom: 10,
   },
-
-  /* NEW: Styles for the User Badge in the Modal */
   activeUserBadge: {
     backgroundColor: "#E6F0F0",
     paddingHorizontal: 15,
@@ -362,7 +362,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 14,
   },
-
   modalMessage: {
     fontFamily: "Roboto-Regular",
     fontSize: 16,

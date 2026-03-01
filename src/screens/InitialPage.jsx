@@ -1,23 +1,41 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Image,
   TouchableOpacity,
+  BackHandler, // <-- Imported
 } from "react-native";
 import { COLORS } from "../theme/colors";
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function InitialPage({ navigation }) {
+  // ==========================================
+  // HARDWARE BACK BUTTON (Exit App)
+  // ==========================================
+  useEffect(() => {
+    const backAction = () => {
+      // If user is on the Initial Page and presses back, close the app.
+      BackHandler.exitApp();
+      return true; // Return true to indicate we handled the event
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, []);
+
   return (
     <SafeAreaProvider style={styles.container}>
       {/* Top Section with the newly added Illustration Asset */}
       <View style={styles.topSection}>
         <Image
-          source={require("../../assets/Images/initial_page.png")} // Make sure this path is correct
+          source={require("../../assets/Images/initialPageBg.png")} // Make sure this path is correct
           style={styles.image}
-          resizeMode="contain"
         />
       </View>
 
@@ -51,13 +69,11 @@ const styles = StyleSheet.create({
   },
   topSection: {
     flex: 1,
-    // backgroundColor: COLORS.primary, // The dark teal background (#07575B)
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     alignItems: "center",
-    
   },
   image: {
-    width: "100%", // Scales the image nicely relative to the screen size
+    width: "100%",
     height: "100%",
   },
   bottomSection: {
@@ -65,6 +81,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 20,
     justifyContent: "center",
+    backgroundColor: COLORS.white,
   },
   title: {
     fontFamily: "Roboto-Bold",
@@ -94,13 +111,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 30,
   },
-  
   footerText: {
     fontFamily: "Roboto-Regular",
     color: "gray",
     fontSize: 14,
   },
-
   linkText: {
     color: COLORS.primary,
     fontSize: 14,

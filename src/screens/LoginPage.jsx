@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,18 +12,21 @@ import {
   Dimensions,
   Alert,
   Modal,
+  BackHandler,
+  StatusBar,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LottieView from "lottie-react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-// Database and Theme Imports
 import db from "../database/database";
 import { COLORS } from "../theme/colors";
 
 const { width, height } = Dimensions.get("window");
-const FORM_BACKGROUND = "#fff";
+
+// How tall the teal hero area is
+const HERO_HEIGHT = height * 0.46;
 
 export default function LoginPage({ navigation }) {
   const [userName, setUserName] = useState("");
@@ -31,8 +34,24 @@ export default function LoginPage({ navigation }) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // ==========================================
+  // HANDLE HARDWARE BACK BUTTON (ANDROID)
+  // ==========================================
+  useEffect(() => {
+    const backAction = () => {
+      navigation.navigate("Initial");
+      return true; // Prevents default behavior (exiting the app)
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [navigation]);
+
   const handleLogin = async () => {
-    // 1. Basic Validation
     if (!userName || !password) {
       Alert.alert(
         "Missing Fields",
@@ -40,35 +59,19 @@ export default function LoginPage({ navigation }) {
       );
       return;
     }
-
-    // Start the Loader
     setIsLoading(true);
-
     try {
-      // 2. Query the Database (Table name: student_app_users)
-      // We search for a match where both username and password are correct
       const user = db.getFirstSync(
         "SELECT * FROM student_app_users WHERE user_name = ? AND password = ?",
         [userName, password],
       );
-
-      // Artificial delay for smooth Lottie UX
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
+      await new Promise((r) => setTimeout(r, 1500));
       if (user) {
-        // 3. Success! Save both the User ID and User Name to AsyncStorage
         await AsyncStorage.setItem("userToken", String(user.user_id));
-        await AsyncStorage.setItem("userName", user.user_name); // <-- NEW: Store the name
-
+        await AsyncStorage.setItem("userName", user.user_name);
         setIsLoading(false);
-
-        // 4. Navigate to Home and clear the stack
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Home" }],
-        });
+        navigation.reset({ index: 0, routes: [{ name: "Home" }] });
       } else {
-        // 5. Failure
         setIsLoading(false);
         Alert.alert(
           "Login Failed",
@@ -86,7 +89,16 @@ export default function LoginPage({ navigation }) {
   };
 
   return (
-    <SafeAreaProvider style={styles.container}>
+    <SafeAreaProvider style={styles.root}>
+      {/* ── BACK BUTTON ── */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.navigate("Initial")}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
+      </TouchableOpacity>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -96,21 +108,22 @@ export default function LoginPage({ navigation }) {
           bounces={false}
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Section with Illustration */}
-          <View style={styles.topSection}>
-            <View style={styles.backgroundSweep} />
-            <Image
-              source={require("../../assets/Images/studentImg.png")}
-              style={styles.image}
-            />
-          </View>
+          {/* ── TEAL HERO BACKGROUND ── */}
+          <View style={styles.heroBg} />
 
-          {/* Form Section */}
-          <View style={styles.wrapper}>
-            <View style={styles.formSection}>
+          {/* ── ILLUSTRATION ── */}
+          <Image
+            source={require("../../assets/Images/initial_page.png")}
+            style={styles.heroImage}
+            resizeMode="contain"
+          />
+
+          {/* ── FORM CARD ── */}
+          <View style={styles.cardWrapper}>
+            <View style={styles.card}>
               <Text style={styles.headerTitle}>SIGN IN</Text>
 
-              {/* User Name Input */}
+              {/* User Name */}
               <View style={styles.inputWrapper}>
                 <TextInput
                   style={styles.input}
@@ -122,7 +135,7 @@ export default function LoginPage({ navigation }) {
                 />
               </View>
 
-              {/* Password Input with Visibility Toggle */}
+              {/* Password */}
               <View style={styles.inputWrapper}>
                 <View style={styles.passwordRow}>
                   <TextInput
@@ -140,13 +153,13 @@ export default function LoginPage({ navigation }) {
                     <Ionicons
                       name={isPasswordVisible ? "eye-off" : "eye"}
                       size={22}
-                      color="#8CAEAE"
+                      color={COLORS.light}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Forget Password Link */}
+              {/* Forgot Password */}
               <TouchableOpacity style={styles.forgotPasswordContainer}>
                 <Text style={styles.forgotPasswordText}>Forget Password ?</Text>
               </TouchableOpacity>
@@ -157,23 +170,22 @@ export default function LoginPage({ navigation }) {
                 onPress={handleLogin}
                 activeOpacity={0.85}
               >
-                <Text style={styles.buttonText}>SIGN IN</Text>
+                <Text style={styles.buttonText}>LOG IN</Text>
               </TouchableOpacity>
             </View>
-          </View>
-          {/* Footer Section */}
-          <View style={styles.footerContainer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-              <Text style={styles.linkText}>SignUp</Text>
-            </TouchableOpacity>
+
+            {/* Footer */}
+            <View style={styles.footerContainer}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+                <Text style={styles.linkText}>SignUp</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ========================================== */}
-      {/* LOTTIE LOADER MODAL                        */}
-      {/* ========================================== */}
+      {/* LOTTIE LOADER */}
       <Modal transparent visible={isLoading} animationType="fade">
         <View style={styles.modalBackground}>
           <View style={styles.loaderContainer}>
@@ -192,57 +204,66 @@ export default function LoginPage({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: COLORS.white,
   },
-
+  backButton: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 50 : (StatusBar.currentHeight || 24) + 15,
+    left: 20,
+    zIndex: 20, // High zIndex so it floats over everything
+    padding: 5,
+  },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: FORM_BACKGROUND,
   },
-  backgroundSweep: {
-    position: "absolute",
-    width: width * 1.4,
-    height: height * 0.45,
-    backgroundColor: COLORS.primary,
-    borderBottomLeftRadius: width * 1.89,
-    borderBottomRightRadius: width * 0.7,
-    top: 0,
-    bottom: -40,
-    right: -50,
-    zIndex: -1,
-  },
-  topSection: {
+  heroBg: {
     width: width,
-    height: 380,
-    // backgroundColor: COLORS.primary,
+    height: HERO_HEIGHT,
+    backgroundColor: COLORS.primary,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: width * 0.25,
   },
-  image: {
-    width: "80%",
-    height: "80%",
-    // resizeMode: "cover",
+  heroImage: {
+    position: "absolute",
+    width: width,
+    height: HERO_HEIGHT,
+    zIndex: 2,
   },
-  formSection: {
-    flex: 1,
-    backgroundColor: FORM_BACKGROUND,
-    paddingHorizontal: 35,
-    paddingTop: 10,
+  cardWrapper: {
+    position: "absolute",
+    width: width,
+    top: "40%",
+    zIndex: 5,
+  },
+  card: {
+    marginHorizontal: "5%",
+    backgroundColor: COLORS.lightest,
+    borderRadius: 18,
+    paddingHorizontal: 30,
+    paddingTop: 30,
+    paddingBottom: 35,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    zIndex: 1,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 30,
     fontFamily: "Roboto-Bold",
     color: COLORS.darkest,
-    marginBottom: 40,
+    marginBottom: 32,
     letterSpacing: 0.5,
   },
   inputWrapper: {
-    marginBottom: 25,
+    marginBottom: 24,
   },
   passwordRow: {
     flexDirection: "row",
     alignItems: "center",
-    position: "relative",
   },
   input: {
     fontFamily: "Roboto-Regular",
@@ -256,12 +277,12 @@ const styles = StyleSheet.create({
   eyeIcon: {
     position: "absolute",
     right: 0,
-    bottom: 12,
+    bottom: 10,
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
-    marginTop: -5,
-    marginBottom: 40,
+    marginTop: -8,
+    marginBottom: 36,
   },
   forgotPasswordText: {
     fontFamily: "Roboto-Regular",
@@ -279,14 +300,13 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto-Bold",
     color: COLORS.white,
     fontSize: 16,
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
   },
   footerContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: "auto",
-    paddingVertical: 35,
+    paddingVertical: 32,
   },
   footerText: {
     fontFamily: "Roboto-Regular",
@@ -298,10 +318,9 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 15,
   },
-  /* Loader Styles */
   modalBackground: {
     flex: 1,
-    backgroundColor: "rgba(4, 32, 38, 0.4)", // Dark semi-transparent overlay
+    backgroundColor: "rgba(4, 32, 38, 0.4)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -313,10 +332,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     elevation: 10,
   },
-  lottie: {
-    width: 120,
-    height: 120,
-  },
+  lottie: { width: 120, height: 120 },
   loaderText: {
     fontFamily: "Roboto-Medium",
     color: COLORS.primary,
