@@ -115,7 +115,7 @@ The app utilizes a strictly typed local database.
 
 1. **Clone the repository:**
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/karthickpalanivel/StudentDatabaseApp-RN.git
 cd student-database-app
 
 ```
