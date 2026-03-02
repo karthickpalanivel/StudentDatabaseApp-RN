@@ -18,10 +18,8 @@
       "package": "com.karthick.studentdatabaseapp",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE"
-      }
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      },
+      "versionCode": 1
     },
     "plugins": [
       "expo-sqlite",
