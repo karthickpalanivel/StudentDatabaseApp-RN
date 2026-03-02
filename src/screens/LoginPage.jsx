@@ -5,8 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  ScrollView,
   Platform,
   Image,
   Dimensions,
@@ -19,6 +17,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LottieView from "lottie-react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view"; // <-- Imported Library
 
 import db from "../database/database";
 import { COLORS } from "../theme/colors";
@@ -59,6 +58,17 @@ export default function LoginPage({ navigation }) {
       );
       return;
     }
+
+    // Explicit validation check for username format before querying DB
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(userName)) {
+      Alert.alert(
+        "Invalid Username",
+        "Username can only contain letters, numbers, and underscores without spaces.",
+      );
+      return;
+    }
+
     setIsLoading(true);
     try {
       const user = db.getFirstSync(
@@ -99,91 +109,93 @@ export default function LoginPage({ navigation }) {
         <Ionicons name="arrow-back" size={28} color={COLORS.white} />
       </TouchableOpacity>
 
-      <KeyboardAvoidingView
+      {/* ── KEYBOARD AWARE SCROLL VIEW ── */}
+      <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        contentContainerStyle={styles.scrollContainer}
+        enableOnAndroid={true}
+        extraScrollHeight={80} // Pushes the focused input up toward the center
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          bounces={false}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* ── TEAL HERO BACKGROUND ── */}
-          <View style={styles.heroBg} />
-
-          {/* ── ILLUSTRATION ── */}
+        {/* ── TEAL HERO BACKGROUND ── */}
+        <View style={styles.topSection}>
           <Image
             source={require("../../assets/Images/initial_page.png")}
             style={styles.heroImage}
             resizeMode="contain"
           />
+        </View>
 
-          {/* ── FORM CARD ── */}
-          <View style={styles.cardWrapper}>
-            <View style={styles.card}>
-              <Text style={styles.headerTitle}>SIGN IN</Text>
+        {/* ── OVERLAPPING FORM CARD ── */}
+        <View style={styles.cardContainer}>
+          <View style={styles.card}>
+            <Text style={styles.headerTitle}>SIGN IN</Text>
 
-              {/* User Name */}
-              <View style={styles.inputWrapper}>
+            {/* User Name */}
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="User Name"
+                placeholderTextColor="#88A1A1"
+                value={userName}
+                // REAL-TIME FILTER: Removes anything that isn't a letter, number, or underscore
+                onChangeText={(text) =>
+                  setUserName(text.replace(/[^a-zA-Z0-9_]/g, ""))
+                }
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* Password */}
+            <View style={styles.inputWrapper}>
+              <View style={styles.passwordRow}>
                 <TextInput
-                  style={styles.input}
-                  placeholder="User Name"
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Password"
                   placeholderTextColor="#88A1A1"
-                  value={userName}
-                  onChangeText={setUserName}
-                  autoCapitalize="none"
+                  secureTextEntry={!isPasswordVisible}
+                  value={password}
+                  onChangeText={setPassword}
                 />
-              </View>
-
-              {/* Password */}
-              <View style={styles.inputWrapper}>
-                <View style={styles.passwordRow}>
-                  <TextInput
-                    style={[styles.input, { flex: 1 }]}
-                    placeholder="Password"
-                    placeholderTextColor="#88A1A1"
-                    secureTextEntry={!isPasswordVisible}
-                    value={password}
-                    onChangeText={setPassword}
+                <TouchableOpacity
+                  onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={isPasswordVisible ? "eye-off" : "eye"}
+                    size={22}
+                    color={COLORS.light}
                   />
-                  <TouchableOpacity
-                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                    style={styles.eyeIcon}
-                  >
-                    <Ionicons
-                      name={isPasswordVisible ? "eye-off" : "eye"}
-                      size={22}
-                      color={COLORS.light}
-                    />
-                  </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               </View>
-
-              {/* Forgot Password */}
-              <TouchableOpacity style={styles.forgotPasswordContainer}>
-                <Text style={styles.forgotPasswordText}>Forget Password ?</Text>
-              </TouchableOpacity>
-
-              {/* Login Button */}
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleLogin}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.buttonText}>LOG IN</Text>
-              </TouchableOpacity>
             </View>
 
-            {/* Footer */}
-            <View style={styles.footerContainer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-                <Text style={styles.linkText}>SignUp</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Forgot Password */}
+            <TouchableOpacity style={styles.forgotPasswordContainer}>
+              <Text style={styles.forgotPasswordText}>Forget Password ?</Text>
+            </TouchableOpacity>
+
+            {/* Login Button */}
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleLogin}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.buttonText}>LOG IN</Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+
+          {/* Footer */}
+          <View style={styles.footerContainer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
+              <Text style={styles.linkText}>SignUp</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAwareScrollView>
 
       {/* LOTTIE LOADER */}
       <Modal transparent visible={isLoading} animationType="fade">
@@ -204,26 +216,28 @@ export default function LoginPage({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: COLORS.white,
+  root: { 
+    flex: 1, 
+    backgroundColor: COLORS.white 
+  },
+  scrollContainer: { 
+    flexGrow: 1, 
+    backgroundColor: COLORS.white 
   },
   backButton: {
     position: "absolute",
     top: Platform.OS === "ios" ? 50 : (StatusBar.currentHeight || 24) + 15,
     left: 20,
-    zIndex: 20, // High zIndex so it floats over everything
+    zIndex: 20,
     padding: 5,
   },
-  scrollContainer: {
-    flexGrow: 1,
-  },
-  heroBg: {
+
+  topSection: {
     width: width,
     height: HERO_HEIGHT,
     backgroundColor: COLORS.primary,
-    borderBottomLeftRadius: 0,
     borderBottomRightRadius: width * 0.25,
+    overflow: "hidden", 
   },
   heroImage: {
     position: "absolute",
@@ -231,14 +245,15 @@ const styles = StyleSheet.create({
     height: HERO_HEIGHT,
     zIndex: 2,
   },
-  cardWrapper: {
-    position: "absolute",
-    width: width,
-    top: "40%",
+
+  cardContainer: {
+    marginTop: -60, 
+    flex: 1,
+    paddingHorizontal: "5%",
+    paddingBottom: 40,
     zIndex: 5,
   },
   card: {
-    marginHorizontal: "5%",
     backgroundColor: COLORS.lightest,
     borderRadius: 18,
     paddingHorizontal: 30,
@@ -249,7 +264,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
-    zIndex: 1,
   },
   headerTitle: {
     fontSize: 30,
@@ -318,6 +332,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 15,
   },
+
   modalBackground: {
     flex: 1,
     backgroundColor: "rgba(4, 32, 38, 0.4)",

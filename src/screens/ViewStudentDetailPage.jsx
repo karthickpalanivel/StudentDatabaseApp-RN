@@ -425,13 +425,13 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
-  SafeAreaView,
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { WebView } from "react-native-webview"; // <-- Replaced react-native-maps with WebView
 import db from "../database/database";
 import { COLORS } from "../theme/colors";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -534,7 +534,7 @@ export default function ViewStudentDetailPage({ route, navigation }) {
   const formattedClass = `${student.student_class} Standard "${student.student_section}" Section`;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaProvider style={styles.safeArea}>
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         bounces={false}
@@ -665,7 +665,7 @@ export default function ViewStudentDetailPage({ route, navigation }) {
           </DetailSection>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

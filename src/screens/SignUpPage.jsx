@@ -15,7 +15,7 @@ import {
 import { COLORS } from "../theme/colors";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view"; // <-- Imported Library
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import db from "../database/database";
 import { validatePhone } from "../database/validators";
@@ -55,6 +55,13 @@ export default function SignUpPage({ navigation }) {
 
     if (!userName || !phone || !password || !confirmPassword) {
       setErrorMessage("Please fill in all the fields.");
+      return;
+    }
+
+    // Explicit validation check for username format before querying DB
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(userName)) {
+      setErrorMessage("Username can only contain letters, numbers, and underscores.");
       return;
     }
 
@@ -143,12 +150,14 @@ export default function SignUpPage({ navigation }) {
           <View style={styles.formWrapper}>
             <Text style={styles.headerTitle}>SIGN UP</Text>
 
+            {/* Username Field */}
             <TextInput
               style={styles.input}
               placeholder="User Name"
               placeholderTextColor={COLORS.light}
               value={userName}
-              onChangeText={setUserName}
+              // REAL-TIME FILTER: Removes anything that isn't a letter, number, or underscore
+              onChangeText={(text) => setUserName(text.replace(/[^a-zA-Z0-9_]/g, ""))}
               autoCapitalize="none"
             />
 
@@ -228,6 +237,7 @@ export default function SignUpPage({ navigation }) {
     </SafeAreaProvider>
   );
 }
+
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.white },

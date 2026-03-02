@@ -19,13 +19,23 @@
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE"
       },
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ]
     },
     "plugins": [
       "expo-sqlite",
       "expo-font",
       "@react-native-community/datetimepicker",
       "expo-file-system"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "00449bc5-8c02-46a3-a6cf-04d79e5ed35d"
+      }
+    }
   }
 }
