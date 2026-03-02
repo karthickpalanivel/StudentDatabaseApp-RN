@@ -93,7 +93,7 @@ export default function LoginPage({ navigation }) {
       console.error("Authentication Error: ", error);
       Alert.alert(
         "Error",
-        "Something went wrong while connecting to the database.",
+        "Something went wrong while connecting....",
       );
     }
   };
@@ -183,7 +183,7 @@ export default function LoginPage({ navigation }) {
               onPress={handleLogin}
               activeOpacity={0.85}
             >
-              <Text style={styles.buttonText}>LOG IN</Text>
+              <Text style={styles.buttonText}>SIGN IN</Text>
             </TouchableOpacity>
           </View>
 

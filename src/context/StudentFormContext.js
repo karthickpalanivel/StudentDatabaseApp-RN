@@ -11,7 +11,7 @@ export const StudentFormProvider = ({ children }) => {
     section: "",
     schoolName: "",
     gender: "Male",
-    dob: new Date(),
+    dob: null,
     bloodGroup: "",
     fatherName: "",
     motherName: "",

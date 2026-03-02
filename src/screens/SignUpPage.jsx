@@ -87,7 +87,7 @@ export default function SignUpPage({ navigation }) {
       );
 
       if (existingUserByName) {
-        setErrorMessage("User already exists with this name.");
+        setErrorMessage("User already exists with this user name.");
         return;
       }
 
@@ -153,7 +153,7 @@ export default function SignUpPage({ navigation }) {
             {/* Username Field */}
             <TextInput
               style={styles.input}
-              placeholder="User Name"
+              placeholder="User name (letters, numbers, underscores)"
               placeholderTextColor={COLORS.light}
               value={userName}
               // REAL-TIME FILTER: Removes anything that isn't a letter, number, or underscore
@@ -229,7 +229,7 @@ export default function SignUpPage({ navigation }) {
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-              <Text style={styles.linkText}>SignIn</Text>
+              <Text style={styles.linkText}>Sign In</Text>
             </TouchableOpacity>
           </View>
         </View>

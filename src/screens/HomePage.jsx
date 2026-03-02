@@ -14,7 +14,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LottieView from "lottie-react-native";
 
-import db from "../database/database";
 import { COLORS } from "../theme/colors";
 
 const { width, height } = Dimensions.get("window");
@@ -100,7 +99,6 @@ export default function HomePage({ navigation }) {
           loop
           style={styles.lottieLoader}
         />
-        <Text style={styles.loadingText}>Loading Dashboard...</Text>
       </View>
     );
   }
@@ -205,7 +203,7 @@ export default function HomePage({ navigation }) {
             </View>
 
             <Text style={styles.modalMessage}>
-              Are you sure you want to log out of the application?
+              Are you sure you want to log out?
             </Text>
 
             <View style={styles.modalButtonRow}>

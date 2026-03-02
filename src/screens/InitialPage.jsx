@@ -48,7 +48,7 @@ export default function InitialPage({ navigation }) {
           style={styles.button}
           onPress={() => navigation.navigate("Login")}
         >
-          <Text style={styles.buttonText}>LOG IN</Text>
+          <Text style={styles.buttonText}>SIGN IN</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
