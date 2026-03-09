@@ -19,12 +19,13 @@ import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+
 import { COLORS } from "../theme/colors";
 import db from "../database/database";
 import { validatePhone, validateZipCode } from "../database/validators";
 import { StudentFormContext } from "../context/StudentFormContext";
 
-// ── Leaflet static preview map ──
 const staticMapHTML = (lat, lon) => `<!DOCTYPE html>
 <html><head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
@@ -36,13 +37,12 @@ const staticMapHTML = (lat, lon) => `<!DOCTYPE html>
 var map=L.map('map',{zoomControl:false,dragging:false,touchZoom:false,
   scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false})
   .setView([${lat},${lon}],16);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
   {maxZoom:19,attribution:''}).addTo(map);
 L.circleMarker([${lat},${lon}],
   {radius:9,color:'#07575B',fillColor:'#07575B',fillOpacity:1,weight:2}).addTo(map);
 </script></body></html>`;
 
-// ── Reusable form components ──
 const FormInput = ({
   label,
   value,
@@ -138,7 +138,6 @@ export default function AddStudentPage({ navigation }) {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      // Allow navigation if we are actively saving and pushing to ViewStudent
       if (e.data.action.type === "GO_BACK") {
         e.preventDefault();
         navigation.navigate("Home");
@@ -147,6 +146,7 @@ export default function AddStudentPage({ navigation }) {
     return unsubscribe;
   }, [navigation]);
 
+  // --- RE-ENABLED 1:1 CROPPING ---
   const takePhoto = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
@@ -155,8 +155,8 @@ export default function AddStudentPage({ navigation }) {
     }
     let r = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsEditing: true, // Cropping enabled
+      aspect: [1, 1], // 1:1 Square ratio
       quality: 0.3,
       base64: true,
     });
@@ -170,8 +170,8 @@ export default function AddStudentPage({ navigation }) {
   const pickFromGallery = async () => {
     let r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsEditing: true, // Cropping enabled
+      aspect: [1, 1], // 1:1 Square ratio
       quality: 0.3,
       base64: true,
     });
@@ -193,75 +193,56 @@ export default function AddStudentPage({ navigation }) {
     setShowDatePicker(Platform.OS === "ios");
     if (d) updateFormData("dob", d);
   };
+
   const throwError = (msg) => {
     setErrorMessage(msg);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    scrollViewRef.current?.scrollToPosition(0, 0, true);
   };
 
-  const handleSubmit = () => {
-    setErrorMessage("");
-    const finalAddr2 = formData.isSameAddress
-      ? formData.address1
-      : formData.address2;
-    const formattedDob = new Date(formData.dob).toLocaleDateString("en-GB");
-    if (!formData.imageUri) return throwError("Please select a profile image.");
-    if (
-      !formData.name ||
-      !formData.studentClass ||
-      !formData.section ||
-      !formData.schoolName ||
-      !formData.bloodGroup ||
-      !formData.fatherName ||
-      !formData.motherName ||
-      !formData.address1 ||
-      !formData.city ||
-      !formData.state
-    )
-      return throwError("Please fill out all required text fields.");
-    if (
-      !validatePhone(formData.parentContact) ||
-      !validatePhone(formData.emergencyContact)
-    )
-      return throwError("Phone numbers must be exactly 10 digits.");
-    if (!validateZipCode(formData.zip))
-      return throwError("Zip Code must be exactly 6 digits.");
+  // --- HELPER TO EXECUTE DATABASE INSERT ---
+  const executeSubmission = (formattedDob, parsedClass, finalAddr2) => {
     try {
-      const existing = db.getFirstSync(
-        "SELECT * FROM students WHERE LOWER(student_name)=LOWER(?) AND student_parent_contact_no=?",
-        [formData.name, formData.parentContact],
-      );
-      if (existing)
-        return throwError(
-          "A student with this name and contact already exists.",
+      if (formData.parentContact) {
+        const existing = db.getFirstSync(
+          "SELECT * FROM students WHERE LOWER(student_name)=LOWER(?) AND student_parent_contact_no=?",
+          [formData.name, formData.parentContact],
         );
+        if (existing)
+          return throwError(
+            "A student with this name and contact already exists.",
+          );
+      }
+
       db.runSync(
-        `INSERT INTO students (student_picture_uri,student_name,student_class,student_section,
-        student_school_name,student_gender,student_date_of_birth,student_blood_group,student_father_name,
-        student_mother_name,student_parent_contact_no,student_address_1,student_address_2,student_city,
-        student_state,student_zip_code,student_emergency_contact,student_location_lat,student_location_lon)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        `INSERT INTO students (
+          student_picture_uri, student_name, student_class, student_section, student_school_name,
+          student_gender, student_date_of_birth, student_blood_group, student_father_name, student_mother_name,
+          student_parent_contact_no, student_address_1, student_address_2, student_city, student_state,
+          student_zip_code, student_emergency_contact, student_location_lat, student_location_lon
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           formData.imageUri,
           formData.name,
-          parseInt(formData.studentClass, 10),
-          formData.section,
-          formData.schoolName,
-          formData.gender,
+          parsedClass,
+          formData.section || null,
+          formData.schoolName || null,
+          formData.gender || null,
           formattedDob,
-          formData.bloodGroup,
-          formData.fatherName,
-          formData.motherName,
-          formData.parentContact,
-          formData.address1,
-          finalAddr2,
-          formData.city,
-          formData.state,
-          formData.zip,
-          formData.emergencyContact,
+          formData.bloodGroup || null,
+          formData.fatherName || null,
+          formData.motherName || null,
+          formData.parentContact || null,
+          formData.address1 || null,
+          finalAddr2 || null,
+          formData.city || null,
+          formData.state || null,
+          formData.zip || null,
+          formData.emergencyContact || null,
           formData.location.lat,
           formData.location.lng,
         ],
       );
+
       setShowSuccessModal(true);
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -270,18 +251,67 @@ export default function AddStudentPage({ navigation }) {
       }, 2500);
     } catch (e) {
       console.error(e);
-      throwError("Failed to save details. Please try again.");
+      throwError("Database failed to save. Please try again.");
+    }
+  };
+
+  const handleSubmit = () => {
+    setErrorMessage("");
+    const finalAddr2 = formData.isSameAddress
+      ? formData.address1
+      : formData.address2;
+
+    // --- Validations ---
+    if (!formData.imageUri) return throwError("Please select a profile image.");
+    if (!formData.name.trim())
+      return throwError("Please enter the student's name.");
+
+    if (formData.parentContact && !validatePhone(formData.parentContact))
+      return throwError("Parent's phone must be exactly 10 digits.");
+    if (formData.emergencyContact && !validatePhone(formData.emergencyContact))
+      return throwError("Emergency contact must be exactly 10 digits.");
+    if (formData.zip && !validateZipCode(formData.zip))
+      return throwError("Zip Code must be exactly 6 digits.");
+
+    const formattedDob = formData.dob
+      ? new Date(formData.dob).toLocaleDateString("en-GB")
+      : null;
+    const parsedClass = formData.studentClass
+      ? parseInt(formData.studentClass, 10)
+      : null;
+
+    // --- CHECK FOR DEFAULT LOCATION ---
+    const isDefaultLocation =
+      formData.location.lat === 13.013694312663684 &&
+      formData.location.lng === 80.2219636458676;
+
+    if (isDefaultLocation) {
+      Alert.alert(
+        "Default Location Detected",
+        "You haven't changed the default map location. Are you sure this default address is fine to enter?",
+        [
+          { text: "No, Change It", style: "cancel" },
+          {
+            text: "Yes, Save It",
+            onPress: () =>
+              executeSubmission(formattedDob, parsedClass, finalAddr2),
+          },
+        ],
+      );
+    } else {
+      executeSubmission(formattedDob, parsedClass, finalAddr2);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
+    <View style={{ flex: 1, backgroundColor: COLORS.white }}>
+      <KeyboardAwareScrollView
         ref={scrollViewRef}
+        style={{ flex: 1 }}
         contentContainerStyle={styles.container}
+        enableOnAndroid={true}
+        extraScrollHeight={100}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {errorMessage ? (
@@ -291,7 +321,6 @@ export default function AddStudentPage({ navigation }) {
           </View>
         ) : null}
 
-        {/* Profile image picker */}
         <View style={styles.profileSection}>
           <TouchableOpacity
             onPress={handleImageSelection}
@@ -322,7 +351,6 @@ export default function AddStudentPage({ navigation }) {
           label="Name"
           value={formData.name}
           onChangeText={(v) => updateFormData("name", v)}
-          maxLength={50}
         />
         <View style={styles.row}>
           <View style={{ flex: 1, marginRight: 10 }}>
@@ -359,7 +387,6 @@ export default function AddStudentPage({ navigation }) {
           label="School name"
           value={formData.schoolName}
           onChangeText={(v) => updateFormData("schoolName", v)}
-          maxLength={50}
         />
 
         <View style={styles.radioGroup}>
@@ -391,7 +418,11 @@ export default function AddStudentPage({ navigation }) {
         >
           <FormInput
             label="DOB"
-            value={new Date(formData.dob).toLocaleDateString("en-GB")}
+            value={
+              formData.dob
+                ? new Date(formData.dob).toLocaleDateString("en-GB")
+                : "--/--/----"
+            }
             isReadOnly
             icon={
               <Ionicons
@@ -404,9 +435,10 @@ export default function AddStudentPage({ navigation }) {
         </TouchableOpacity>
         {showDatePicker && (
           <DateTimePicker
-            value={new Date(formData.dob)}
+            value={formData.dob ? new Date(formData.dob) : new Date()}
             mode="date"
             display="default"
+            maximumDate={new Date()}
             onChange={handleDateChange}
           />
         )}
@@ -497,11 +529,9 @@ export default function AddStudentPage({ navigation }) {
           maxLength={10}
         />
 
-        {/* ── Location Map Preview (WebView) ── */}
         <View style={styles.mapSection}>
           <Text style={styles.mapLabelText}>Select Location</Text>
           <View style={styles.mapContainer}>
-            {/* key forces re-render when location changes */}
             <WebView
               key={`${formData.location.lat}_${formData.location.lng}`}
               source={{
@@ -535,7 +565,7 @@ export default function AddStudentPage({ navigation }) {
         >
           <Text style={styles.submitButtonText}>SUBMIT</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Modal visible={showSuccessModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -550,7 +580,7 @@ export default function AddStudentPage({ navigation }) {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -617,7 +647,7 @@ const styles = StyleSheet.create({
     borderColor: "#8CAEAE",
     borderRadius: 5,
     flexDirection: "row",
-    alignItems: "center", // This guarantees vertical centering of children
+    alignItems: "center",
     paddingHorizontal: 15,
   },
   textInput: {
@@ -625,8 +655,8 @@ const styles = StyleSheet.create({
     fontFamily: "Roboto-Regular",
     fontSize: 16,
     color: COLORS.darkest,
-    padding: 0, // Removes default Android padding
-    textAlignVertical: "center", // Ensures vertical center explicitly
+    padding: 0,
+    textAlignVertical: "center",
   },
   inputIcon: { marginLeft: 10 },
   floatingLabelContainer: {
@@ -715,8 +745,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     marginLeft: 8,
   },
-
-  // Map Section untouched per instructions
   mapSection: { marginBottom: 35 },
   mapLabelText: {
     fontFamily: "Roboto-Regular",
@@ -733,7 +761,6 @@ const styles = StyleSheet.create({
     borderColor: "#8CAEAE",
     position: "relative",
   },
-  map: { ...StyleSheet.absoluteFillObject },
   mapOverlayBox: {
     position: "absolute",
     bottom: 0,

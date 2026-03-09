@@ -153,7 +153,7 @@ export default function SignUpPage({ navigation }) {
             {/* Username Field */}
             <TextInput
               style={styles.input}
-              placeholder="User name (letters, numbers, underscores)"
+              placeholder="User name"
               placeholderTextColor={COLORS.light}
               value={userName}
               // REAL-TIME FILTER: Removes anything that isn't a letter, number, or underscore

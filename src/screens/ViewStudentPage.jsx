@@ -30,10 +30,16 @@ const getOrdinalSuffix = (number) => {
 // ==========================================
 // REUSABLE UI COMPONENT: Student Card
 // ==========================================
+
 const StudentCard = ({ student, onPress }) => {
-  // Construct the formatted subtitle string exactly like the mockup
-  const formattedClass = getOrdinalSuffix(student.student_class);
-  const subtitle = `${formattedClass} Std - ${student.student_section} / ${student.student_school_name}`;
+  const classText = student.student_class 
+    ? `${getOrdinalSuffix(student.student_class)} Std` 
+    : "N/A";
+  const sectionText = student.student_section ? student.student_section : "N/A";
+
+  const schoolText = student.student_school_name ? student.student_school_name : "N/A";
+
+  const subtitle = `${classText} - ${sectionText} / ${schoolText}`;
 
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>

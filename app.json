@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -19,18 +19,15 @@
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE"
       },
-      "versionCode": 1,
-      "permissions": [
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.INTERNET"
-      ]
+      "versionCode": 2
     },
     "plugins": [
       "expo-sqlite",
       "expo-font",
       "@react-native-community/datetimepicker",
-      "expo-file-system"
+      "expo-file-system",
+      "expo-image-picker",
+      "expo-location"
     ],
     "extra": {
       "eas": {
